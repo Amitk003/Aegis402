@@ -8,6 +8,7 @@ import { initCdp, processPayment, hasCdpCredentials, isProductionMode } from './
 import { createReceipt } from './x402.js';
 import { checkRateLimit, trackSpend } from './ratelimit.js';
 import { loadMcpConfig, isMcpRequest, getToolName, createMcpChallenge } from './mcp.js';
+import { recordRequest, getStats } from './stats.js';
 
 const fastify = Fastify({ logger: { level: process.env.LOG_LEVEL || 'info' } });
 
@@ -24,6 +25,11 @@ fastify.get('/health', async (_request: FastifyRequest, reply: FastifyReply) => 
     cdpMode: isProductionMode() ? 'production' : 'development',
     cdpConfigured: hasCdpCredentials()
   });
+});
+
+// Stats endpoint for dashboard analytics (not payment-gated)
+fastify.get('/stats', async (_request: FastifyRequest, reply: FastifyReply) => {
+  reply.send(getStats());
 });
 
 async function proxyToUpstream(request: FastifyRequest, reply: FastifyReply, txHash: string) {
@@ -102,6 +108,7 @@ fastify.all('/*', async (request: FastifyRequest, reply: FastifyReply) => {
   const clientIp = request.ip;
   const rateCheck = checkRateLimit(clientIp);
   if (!rateCheck.allowed) {
+    recordRequest({ timestamp: Date.now(), method: request.method, path: request.url, status: 'rate_limited' });
     reply.header('retry-after', String(Math.ceil((rateCheck.resetAt - Date.now()) / 1000)));
     return reply.status(429).send({ error: 'Too Many Requests', detail: rateCheck.reason });
   }
@@ -115,11 +122,13 @@ fastify.all('/*', async (request: FastifyRequest, reply: FastifyReply) => {
       if (toolName) {
         const mcpChallenge = createMcpChallenge(toolName);
         const price = mcpChallenge.body.accepts[0]?.amount || '0.05';
+        recordRequest({ timestamp: Date.now(), method: request.method, path: request.url, status: 'challenged', amount: price });
         return reply.status(402)
           .headers(mcpChallenge.headers)
           .send({ error: 'Payment Required', tool: toolName, price });
       }
     }
+    recordRequest({ timestamp: Date.now(), method: request.method, path: request.url, status: 'challenged' });
     handle402Challenge(request, reply);
     return;
   }
@@ -133,6 +142,7 @@ fastify.all('/*', async (request: FastifyRequest, reply: FastifyReply) => {
   // Process the x402 payment with security mitigations
   const paymentResult = await processPayment(paymentHeader, UPSTREAM);
   if (!paymentResult.success) {
+    recordRequest({ timestamp: Date.now(), method: request.method, path: request.url, status: 'rejected', detail: paymentResult.error });
     return reply.status(402).send({
       error: 'Payment rejected',
       detail: paymentResult.error
@@ -143,9 +153,11 @@ fastify.all('/*', async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const decoded = JSON.parse(Buffer.from(paymentHeader, 'base64').toString());
     const walletAddress = decoded.payload?.signer || decoded.signer || clientIp;
-    trackSpend(walletAddress, decoded.accepted?.amount || '0.05');
+    const amount = decoded.accepted?.amount || '0.05';
+    trackSpend(walletAddress, amount);
+    recordRequest({ timestamp: Date.now(), method: request.method, path: request.url, status: 'paid', wallet: walletAddress, amount });
   } catch {
-    // Ignore tracking errors
+    recordRequest({ timestamp: Date.now(), method: request.method, path: request.url, status: 'paid' });
   }
 
   // Forward to upstream
