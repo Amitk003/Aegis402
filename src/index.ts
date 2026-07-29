@@ -10,7 +10,9 @@ import { checkRateLimit, trackSpend } from './ratelimit.js';
 import { loadMcpConfig, isMcpRequest, getToolName, createMcpChallenge } from './mcp.js';
 import { recordRequest, getStats } from './stats.js';
 
-const fastify = Fastify({ logger: { level: process.env.LOG_LEVEL || 'info' } });
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+// Set LOG_JSON=true or NODE_ENV=production for structured JSON logging (SIEM-friendly)
+const fastify = Fastify({ logger: { level: LOG_LEVEL } });
 
 const UPSTREAM = process.env.UPSTREAM_URL || 'http://localhost:8080';
 

@@ -18,12 +18,13 @@ Aegis402 is configured through environment variables. You can set them in a `.en
 | `HOST` | `0.0.0.0` | What network interface to bind to |
 | `REDIS_URL` | `redis://localhost:6379` | Redis connection string. If not available, falls back to in-memory storage |
 | `PRICE` | `0.05` | Default price per API call in USDC |
-| `NETWORK` | `eip155:84532` | Blockchain network reference (CAIP-2 format) |
+| `NETWORK` | `eip155:84532` | Blockchain network reference (CAIP-2 format). Set to `eip155:8453` for Base Mainnet |
 | `ASSET` | `USDC` | Which stablecoin to accept |
 | `PAY_TO` | - | Your wallet address where payments are sent |
 | `CDP_API_KEY` | - | Coinbase Developer Platform API key |
 | `CDP_API_SECRET` | - | Coinbase Developer Platform API secret |
 | `LOG_LEVEL` | `info` | Logging verbosity: `error`, `warn`, `info`, `debug` |
+| `LOG_JSON` | `false` | When `true`, outputs structured JSON logs for SIEM integration. Auto-enabled in production |
 | `MCP_CONFIG_PATH` | `pricing.json` | Path to per-tool MCP pricing configuration |
 | `FACILITATOR_ADDRESS` | - | Wallet address for caller binding enforcement |
 | `FINALITY_CONFIRMATIONS` | `2` | Block confirmations needed for high-value payments |
