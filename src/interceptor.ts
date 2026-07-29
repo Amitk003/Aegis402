@@ -1,10 +1,10 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
 const CONFIG = {
-  price: '0.05',
-  network: 'eip155:8453',
-  asset: 'USDC',
-  payTo: '0x1234567890123456789012345678901234567890' // Dummy merchant address
+  price: process.env.PRICE || '0.05',
+  network: process.env.NETWORK || 'eip155:84532',
+  asset: process.env.ASSET || 'USDC',
+  payTo: process.env.PAY_TO || '0x1234567890123456789012345678901234567890'
 };
 
 export const handle402Challenge = (request: FastifyRequest, reply: FastifyReply) => {
@@ -18,9 +18,9 @@ export const handle402Challenge = (request: FastifyRequest, reply: FastifyReply)
   const base64Challenge = Buffer.from(JSON.stringify(challengePayload)).toString('base64');
 
   return reply.status(402)
-    .header('PAYMENT-REQUIRED', base64Challenge)
-    .header('Cache-Control', 'private, no-cache, no-store, must-revalidate')
-    .send({ error: 'Payment Required', challenge: challengePayload });
+    .header('payment-required', base64Challenge)
+    .header('cache-control', 'private, no-cache, no-store, must-revalidate')
+    .send({ error: 'Payment Required' });
 };
 
 export const checkPaymentHeader = (request: FastifyRequest): string | null => {
@@ -30,4 +30,24 @@ export const checkPaymentHeader = (request: FastifyRequest): string | null => {
     return paymentHeader;
   }
   return null;
+};
+
+export const extractNonce = (paymentHeader: string): string => {
+  try {
+    const decoded = Buffer.from(paymentHeader, 'base64').toString('utf-8');
+    const payload = JSON.parse(decoded);
+    if (payload.nonce && typeof payload.nonce === 'string') {
+      return payload.nonce;
+    }
+  } catch {
+    // Not base64 JSON, try using the header as-is
+  }
+  // Fallback: hash the header to create a deterministic nonce
+  let hash = 0;
+  for (let i = 0; i < paymentHeader.length; i++) {
+    const char = paymentHeader.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash.toString(16);
 };
