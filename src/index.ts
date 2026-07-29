@@ -40,8 +40,16 @@ async function proxyToUpstream(request: FastifyRequest, reply: FastifyReply, txH
           }
         }
 
-        // Attack III: Cache leakage prevention
+        // Attack III: Web-Layer Handling mitigation
+        // Strip any upstream cache headers and enforce strict privacy
         initHeaders['cache-control'] = 'private, no-cache, no-store, must-revalidate';
+        initHeaders['pragma'] = 'no-cache';
+        initHeaders['expires'] = '0';
+        // Add Vary header to prevent CDN caching by URL alone
+        initHeaders['vary'] = 'x-payment, authorization';
+        // Remove ETag and Last-Modified to prevent conditional requests bypassing payment
+        delete initHeaders['etag'];
+        delete initHeaders['last-modified'];
 
         // Inject payment receipt
         const receipt = createReceipt(txHash);
@@ -89,8 +97,8 @@ fastify.all('/*', async (request: FastifyRequest, reply: FastifyReply) => {
     return reply.status(502).send({ error: 'Bad Gateway: Upstream target is unreachable. Payment aborted.' });
   }
 
-  // Process the x402 payment
-  const result = await processPayment(paymentHeader);
+  // Process the x402 payment with security mitigations
+  const result = await processPayment(paymentHeader, UPSTREAM);
   if (!result.success) {
     return reply.status(402).send({
       error: 'Payment rejected',

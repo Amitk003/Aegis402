@@ -1,7 +1,7 @@
 import { parsePaymentHeader, randomTxHash } from './x402.js';
-import { acquireLock } from './store.js';
+import { prePaymentCheck, postPaymentCheck, recordSettlement } from './mitigations.js';
 
-let cdpMode: 'production' | 'development' = 'development';
+let cdpMode: 'development' | 'production' = 'development';
 
 let facilitatorClient: {
   verify(paymentPayload: unknown, requirements: unknown): Promise<{ isValid: boolean }>;
@@ -38,7 +38,8 @@ export async function initCdp(): Promise<boolean> {
 }
 
 export async function processPayment(
-  paymentHeader: string
+  paymentHeader: string,
+  upstreamUrl: string
 ): Promise<{ success: boolean; txHash?: string; error?: string }> {
   const payment = parsePaymentHeader(paymentHeader);
   if (!payment) {
@@ -48,25 +49,31 @@ export async function processPayment(
     };
   }
 
-  // Attack II: Idempotency check using the payload's unique identifier
-  const nonce = extractNonceFromPayload(payment);
-  const locked = await acquireLock(nonce);
-  if (!locked) {
-    return { success: false, error: 'Duplicate payment: this nonce was already used' };
+  // Run pre-payment security mitigations
+  const preCheck = await prePaymentCheck(payment, upstreamUrl);
+  if (!preCheck.allowed) {
+    return { success: false, error: `Security check failed: ${preCheck.reason}` };
   }
 
   if (cdpMode === 'development') {
-    return { success: true, txHash: randomTxHash() };
+    const txHash = randomTxHash();
+    // Run post-payment verification (dev mode: instant)
+    const postCheck = await postPaymentCheck(txHash, payment.accepted.amount, payment.accepted.network);
+    if (!postCheck.allowed) {
+      return { success: false, error: `Finality check failed: ${postCheck.reason}` };
+    }
+    await recordSettlement(extractNonceSafe(payment));
+    return { success: true, txHash };
   }
 
   try {
-    // Verify the payment with the CDP facilitator
     if (!facilitatorClient) {
       return { success: false, error: 'CDP facilitator not initialized' };
     }
 
     const requirements = payment.accepted;
 
+    // Verify the payment
     const verifyResult = await facilitatorClient.verify(payment, requirements);
     if (!verifyResult.isValid) {
       return { success: false, error: 'Payment verification failed' };
@@ -78,25 +85,31 @@ export async function processPayment(
       return { success: false, error: 'Payment settlement failed' };
     }
 
-    return { success: true, txHash: settleResult.transaction || randomTxHash() };
+    const txHash = settleResult.transaction || randomTxHash();
+
+    // Run post-payment verification with k-confirmations
+    const postCheck = await postPaymentCheck(txHash, payment.accepted.amount, payment.accepted.network);
+    if (!postCheck.allowed) {
+      return { success: false, error: `Finality check failed: ${postCheck.reason}` };
+    }
+
+    await recordSettlement(extractNonceSafe(payment));
+    return { success: true, txHash };
   } catch (err) {
     return { success: false, error: `Payment processing failed: ${(err as Error).message}` };
   }
 }
 
-function extractNonceFromPayload(payment: { payload: Record<string, unknown> }): string {
-  // Try common nonce field names in order of preference
+function extractNonceSafe(payment: { payload: Record<string, unknown> }): string {
+  // Dynamic import to avoid circular dependency
   const nonce = payment.payload.nonce
     || payment.payload.nonceV2
     || payment.payload.authorizationId;
-  if (typeof nonce === 'string') {
-    return nonce;
-  }
-  // Fallback: hash the entire payload
-  return cryptoHash(JSON.stringify(payment));
+  if (typeof nonce === 'string') return nonce;
+  return hashString(JSON.stringify(payment));
 }
 
-function cryptoHash(data: string): string {
+function hashString(data: string): string {
   let hash = 0;
   for (let i = 0; i < data.length; i++) {
     const char = data.charCodeAt(i);
