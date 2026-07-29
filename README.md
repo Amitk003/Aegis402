@@ -1,37 +1,66 @@
-# Aegis402: The Verification-Native Agentic Firewall
+# Aegis402: The Security Layer for AI Payments
 
-## Securing the Future of Agentic Commerce
+## Monetize your API in 5 minutes. No subscriptions. No browser wallets. No code changes.
 
-The internet is evolving. We are shifting from human-centric web browsing to an automated, machine-driven ecosystem powered by autonomous AI agents. The x402 protocol is the foundational payment rail for this new era, enabling machines to transact seamlessly without human intervention.
+AI agents are consuming more and more of the web. Every day, thousands of automated systems scrape your data, call your APIs, and use your compute resources - often for free.
 
-However, nascent protocols always face severe security challenges. Recent academic literature has exposed critical vulnerabilities in the x402 design, leaving standard implementations susceptible to replay attacks, settlement preemption, and web-layer leakage.
+You could block them. Or you could charge them.
 
-Aegis402 is the definitive solution.
+### The Old Way: Subscriptions
 
-## What is Aegis402?
+Monthly subscriptions don't work for AI agents. Agents call APIs unpredictably - sometimes 10 times a day, sometimes 100,000. A flat subscription either overcharges or undercharges. API keys get stolen. Usage limits get abused.
 
-Aegis402 is an intelligent, high-performance API gateway and cryptographic policy engine. It sits in front of any standard Web2 API, database, or AI Model Context Protocol (MCP) server, instantly converting unprotected endpoints into secure, x402-monetized services.
+### The New Way: Pay-per-call with x402
 
-More importantly, Aegis402 is architecturally designed from the ground up to mitigate the core vulnerabilities threatening the agentic economy. It bridges traditional high-throughput HTTP networking, advanced in-memory caching mechanisms, and asynchronous blockchain cryptography to guarantee atomic, secure resource delivery.
+x402 is a protocol that lets machines pay each other over standard HTTP. When an AI agent calls your API, it pays you in USDC for exactly that one request. No subscription. No manual approval. No chargebacks.
 
-## Key Innovations
+The payment happens automatically in the background. The agent doesn't need a browser wallet, a credit card, or a human to click "approve."
 
-*   **Absolute Cache Control:** We forcefully strip upstream caching directives and enforce strict privacy headers, guaranteeing that intermediary networks can never leak premium, paywalled data to unauthorized actors.
-*   **High-Speed Atomic Locking:** Aegis402 leverages distributed Redis clusters to implement strict nonce-locking. We block concurrent replay attacks at the proxy edge, ensuring that a single payment yields a single resource grant.
-*   **Cryptographic Binding:** We enforce strict EIP-712 domain binding, ensuring that only authorized facilitators can settle transactions. Front-running bots are entirely neutralized.
-*   **Intelligent Settlement Thresholds:** Aegis402 bridges the gap between fast web layers and slow blockchains by dynamically polling for required block confirmations before releasing high-value resources.
-*   **Pre-Flight Verification:** Our gateway verifies upstream API health before ever touching a blockchain, ensuring AI agents never pay for dead infrastructure.
+### The Problem: x402 Has Security Flaws
 
-## Enterprise-Grade Integration
+x402 is new. Researchers found 5 critical attacks that let attackers get data without paying, replay the same payment across multiple requests, or exploit caching layers to leak your paid content.
 
-Aegis402 is built for seamless deployment. It acts as a drop-in Dockerized proxy that requires zero alterations to your existing backend code.
+Standard x402 implementations are vulnerable out of the box.
 
-Furthermore, Aegis402 ships with built-in support for the Model Context Protocol (MCP). By routing your MCP server through Aegis402, every AI tool call becomes a securely monetized, autonomous transaction.
+### Aegis402 Fixes That
 
-## The Business Model
+Aegis402 is a proxy that sits in front of your API and handles x402 payments securely. It blocks all 5 known attacks:
 
-We operate as a vital infrastructure layer. When you deploy Aegis402, you configure your price. Our gateway automatically appends a tiny, fractional infrastructure fee to the transaction. When the autonomous agent pays, the blockchain smart contract instantly routes your revenue directly to you, and our fee to us. It is a highly scalable, usage-based model that grows alongside the agentic economy.
+- **Replay protection:** Each payment can only be used once. Parallel requests with the same signature get rejected.
+- **Cache security:** Your paid responses never leak through CDNs or proxy caches.
+- **Front-running prevention:** Attackers cannot steal and re-submit payment signatures.
+- **Safe settlement:** High-value payments wait for blockchain confirmation before delivering data.
+- **Endpoint verification:** AI agents can verify they are paying the real you, not a fake copy.
 
-## Get Started
+### What You Get
 
-Secure your APIs and join the agentic revolution today. Please refer to our documentation in the `docs` folder for setup and deployment instructions.
+- **Zero code changes on your end.** Aegis402 sits in front of your existing API. You don't touch your backend.
+- **Zero Web3 complexity for your users.** AI agents pay via CDP server wallets. No browser extensions, no seed phrases, no gas fees.
+- **Real USDC revenue.** Payments settle on Base or Solana. You get stablecoin revenue in your wallet instantly.
+- **Usage-based pricing.** Set any price per API call. $0.001 for a simple lookup, $0.50 for a heavy computation.
+
+### How It Works
+
+1. You deploy Aegis402 in front of your API (Docker or bare metal)
+2. You set your price per endpoint
+3. AI agents call your API through Aegis402
+4. Aegis402 handles the x402 payment flow automatically
+5. You receive USDC in your wallet for every successful call
+
+### Quick Start
+
+```bash
+docker run -p 3000:3000 -e UPSTREAM_URL=http://yourapi.com aegis402/proxy
+```
+
+See the [docs](docs/) folder for full setup instructions.
+
+### Business Model
+
+Aegis402 takes a small fee (0.5%) from each transaction. You keep the rest. No setup fees, no monthly minimums.
+
+The more traffic your API handles, the more you earn. And the more we earn. Our incentives are aligned.
+
+---
+
+Aegis402 is the missing security layer for the agentic economy. Deploy it once and start getting paid for every API call, automatically.
