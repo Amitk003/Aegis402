@@ -6,7 +6,8 @@ import { connectStore } from './store.js';
 import { checkReachability } from './reachability.js';
 import { initCdp, processPayment, hasCdpCredentials, isProductionMode } from './cdp.js';
 import { createReceipt } from './x402.js';
-import { checkRateLimit, trackSpend, checkSpendLimit } from './ratelimit.js';
+import { checkRateLimit, trackSpend } from './ratelimit.js';
+import { loadMcpConfig, isMcpRequest, getToolName, createMcpChallenge } from './mcp.js';
 
 const fastify = Fastify({ logger: { level: process.env.LOG_LEVEL || 'info' } });
 
@@ -108,6 +109,17 @@ fastify.all('/*', async (request: FastifyRequest, reply: FastifyReply) => {
   const paymentHeader = checkPaymentHeader(request);
 
   if (!paymentHeader) {
+    // Check if this is an MCP tool call for tool-specific pricing
+    if (isMcpRequest(request)) {
+      const toolName = getToolName(request);
+      if (toolName) {
+        const mcpChallenge = createMcpChallenge(toolName);
+        const price = mcpChallenge.body.accepts[0]?.amount || '0.05';
+        return reply.status(402)
+          .headers(mcpChallenge.headers)
+          .send({ error: 'Payment Required', tool: toolName, price });
+      }
+    }
     handle402Challenge(request, reply);
     return;
   }
@@ -143,6 +155,7 @@ fastify.all('/*', async (request: FastifyRequest, reply: FastifyReply) => {
 const start = async () => {
   await connectStore();
   await initCdp();
+  loadMcpConfig();
   try {
     await fastify.listen({ port: Number(process.env.PORT) || 3000, host: process.env.HOST || '0.0.0.0' });
   } catch (err) {
