@@ -2,89 +2,99 @@
 
 ## What you need before starting
 
-- Node.js version 18 or higher
-- A Coinbase Developer Platform (CDP) account (free)
+- Node.js version 18 or higher (or Docker)
+- A Coinbase Developer Platform (CDP) account (free, optional for development)
 - Redis (optional - the proxy works with in-memory storage for development)
 
-## Step 1: Install dependencies
+## Quick Start with Docker
 
-Open a terminal in the project folder and run:
+```bash
+cp .env.example .env
+# Edit .env with your upstream URL
+docker compose up -d
+```
+
+The proxy starts on port 3000. Test it:
+
+```bash
+curl http://localhost:3000/health
+curl http://localhost:3000/api/data
+```
+
+## Quick Start without Docker
+
+### Step 1: Install dependencies
 
 ```bash
 npm install
 ```
 
-This installs all required packages including Fastify, the CDP SDK, and the Redis client.
+### Step 2: Set up environment variables
 
-## Step 2: Set up environment variables
+Copy the example file and edit it:
 
-Create a file called `.env` in the project root folder:
-
-```
-UPSTREAM_URL=http://localhost:8080
-REDIS_URL=redis://localhost:6379
-CDP_API_KEY=your_cdp_api_key_here
-CDP_API_SECRET=your_cdp_api_secret_here
-NETWORK=eip155:84532
-ASSET=USDC
-PAY_TO=0xYourWalletAddressHere
-PRICE=0.05
+```bash
+cp .env.example .env
 ```
 
-- `UPSTREAM_URL` - The API you want to put behind the payment wall
-- `CDP_API_KEY` and `CDP_API_SECRET` - Get these from your CDP account
-- `NETWORK` - Which blockchain to use (eip155:84532 is Base Sepolia testnet)
-- `ASSET` - The stablecoin to accept (USDC)
-- `PAY_TO` - Your wallet address that receives the payments
-- `PRICE` - How much to charge per API call in USDC
+Key variables to set:
 
-## Step 3: Start the proxy
+| Variable | What it does | Example |
+|----------|-------------|---------|
+| `UPSTREAM_URL` | Your API that Aegis402 will protect | `http://localhost:8080` |
+| `PAY_TO` | Your wallet for receiving payments | `0xYourWalletAddress` |
+| `CDP_API_KEY_ID` | From CDP portal (optional for dev) | |
+| `NETWORK` | Blockchain to use | `eip155:84532` (Base Sepolia) or `eip155:8453` (Base mainnet) |
+| `PRICE` | Cost per API call in USDC | `0.05` |
+
+### Step 3: Start the proxy
 
 ```bash
 npm start
 ```
 
-This starts the proxy on port 3000.
+### Step 4: Test it
 
-## Step 4: Test it
-
-Open another terminal and test without a payment header:
+Test without a payment header:
 
 ```bash
 curl http://localhost:3000/api/data
 ```
 
-You should get a 402 response with a PAYMENT-REQUIRED header.
+You get a 402 response with a PAYMENT-REQUIRED header.
 
-Now test with a payment signature:
+Test the health endpoint:
 
 ```bash
-curl -H "x-payment: <your_signed_payload>" http://localhost:3000/api/data
+curl http://localhost:3000/health
 ```
 
-If the signature is valid, the proxy forwards your request to the upstream API and returns the response.
+## Environment Variables
+
+See `.env.example` for the full list of configuration options.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `3000` | Port the proxy listens on |
+| `HOST` | `0.0.0.0` | Network interface to bind to |
+| `LOG_LEVEL` | `info` | Log level: error, warn, info, debug |
+| `RATE_LIMIT_RPM` | `60` | Max requests per minute per IP |
+| `RATE_LIMIT_SPEND` | `10` | Max USDC spend per hour per wallet |
+| `FINALITY_CONFIRMATIONS` | `2` | Block confirmations for high-value payments |
+| `REGISTRY_STRICT` | `false` | When true, only registered endpoints are allowed |
 
 ## Troubleshooting
 
 **Proxy won't start:**
 - Make sure port 3000 is not in use
-- Check that all environment variables are set
-- Run `npm install` again to make sure dependencies are installed
+- Run `npm install` if dependencies are missing
+- Check that `UPSTREAM_URL` is reachable
 
 **Redis connection error:**
 - The proxy falls back to in-memory storage if Redis is not available
-- This is fine for development but data is lost when the proxy restarts
+- In-memory data is lost when the proxy restarts. Use Redis for production.
 
-**Payment always fails:**
-- Make sure you have testnet USDC in your CDP server wallet
-- Check that the CDP API key and secret are correct
-- Verify the network setting matches your CDP configuration
-
-## Running for production
-
-For production use:
-
-1. Set up a proper Redis instance (not in-memory fallback)
-2. Change the network to a mainnet (eip155:8453 for Base)
-3. Use real USDC, not testnet
-4. Set up monitoring and logging
+**Payment always fails in development:**
+- The proxy runs in development mode if CDP credentials are not set
+- Development mode simulates payments - no real blockchain transactions
+- To test with real payments, set CDP_API_KEY_ID and CDP_API_KEY_SECRET
