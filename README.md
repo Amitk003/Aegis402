@@ -1,83 +1,90 @@
-# Aegis402: The Security Layer for AI Payments
+# Aegis402
 
-## Monetize your API in 5 minutes. No subscriptions. No browser wallets. No code changes.
+API proxy that adds x402 payment gating to any HTTP endpoint with built-in security mitigations.
 
-AI agents are consuming more and more of the web. Every day, thousands of automated systems scrape your data, call your APIs, and use your compute resources - often for free.
-
-You could block them. Or you could charge them.
-
-### The Old Way: Subscriptions
-
-Monthly subscriptions don't work for AI agents. Agents call APIs unpredictably - sometimes 10 times a day, sometimes 100,000. A flat subscription either overcharges or undercharges. API keys get stolen. Usage limits get abused.
-
-### The New Way: Pay-per-call with x402
-
-x402 is a protocol that lets machines pay each other over standard HTTP. When an AI agent calls your API, it pays you in USDC for exactly that one request. No subscription. No manual approval. No chargebacks.
-
-The payment happens automatically in the background. The agent doesn't need a browser wallet, a credit card, or a human to click "approve."
-
-### The Problem: x402 Has Security Flaws
-
-x402 is new. Researchers found 5 critical attacks that let attackers get data without paying, replay the same payment across multiple requests, or exploit caching layers to leak your paid content.
-
-Standard x402 implementations are vulnerable out of the box.
-
-### Aegis402 Fixes That
-
-Aegis402 is a proxy that sits in front of your API and handles x402 payments securely. It blocks all 5 known attacks:
-
-- **Replay protection:** Each payment can only be used once. Parallel requests with the same signature get rejected.
-- **Cache security:** Your paid responses never leak through CDNs or proxy caches.
-- **Front-running prevention:** Attackers cannot steal and re-submit payment signatures.
-- **Safe settlement:** High-value payments wait for blockchain confirmation before delivering data.
-- **Endpoint verification:** AI agents can verify they are paying the real you, not a fake copy.
-
-### What You Get
-
-- **Zero code changes on your end.** Aegis402 sits in front of your existing API. You don't touch your backend.
-- **Zero Web3 complexity for your users.** AI agents pay via CDP server wallets. No browser extensions, no seed phrases, no gas fees.
-- **Real USDC revenue.** Payments settle on Base or Solana. You get stablecoin revenue in your wallet instantly.
-- **Usage-based pricing.** Set any price per API call. $0.001 for a simple lookup, $0.50 for a heavy computation.
-
-### How It Works
-
-1. You deploy Aegis402 in front of your API (Docker or bare metal)
-2. You set your price per endpoint
-3. AI agents call your API through Aegis402
-4. Aegis402 handles the x402 payment flow automatically
-5. You receive USDC in your wallet for every successful call
-
-### Quick Start
-
-**Using Docker (recommended):**
+## Quick Start
 
 ```bash
-# Clone and deploy
 git clone https://github.com/Amitk003/Aegis402.git
 cd Aegis402
 cp .env.example .env
-# Edit .env with your settings
+# Edit .env with your upstream URL and payment address
 docker compose up -d
 ```
 
-The proxy starts on port 3000. Check it: `curl http://localhost:3000/health`
+Proxy starts on port 3000. Check: `curl http://localhost:3000/health`
 
-**Without Docker:**
+No Docker: `npm install && npm start`
 
-```bash
-npm install
-cp .env.example .env
-npm start
+## How It Works
+
+Aegis402 sits between AI agents and your API. Every incoming request is checked for an x402 payment. If no payment is present, the proxy returns HTTP 402 with a payment challenge. The agent signs a USDC payment and retries. Aegis402 verifies the payment, runs security checks, and forwards the request to your upstream API.
+
+```
+AI Agent -> Aegis402 -> Your API
+               |
+          (402 if no payment)
 ```
 
-See the [docs](docs/) folder for detailed setup instructions.
+## Security Mitigations
 
-### Business Model
+All five attacks from arXiv:2605.11781 are blocked at the proxy layer:
 
-Aegis402 takes a small fee (0.5%) from each transaction. You keep the rest. No setup fees, no monthly minimums.
+| Attack | Mitigation |
+|--------|-----------|
+| Revert-Grant (I-A) | Configurable k-confirmation polling before releasing data |
+| Settlement Preemption (I-B) | EIP-712 caller binding enforcement |
+| Replay / Idempotency (II) | Nonce-based locking with in-memory or Redis store |
+| Cache Leakage (III) | Forceful cache-control header injection |
+| Sybil Discovery (IV) | Endpoint attestation registry with strict mode |
 
-The more traffic your API handles, the more you earn. And the more we earn. Our incentives are aligned.
+## Payment Flow
 
----
+1. Client requests resource - no payment header
+2. Aegis402 returns 402 with PAYMENT-REQUIRED header (price, network, asset, payee)
+3. Client signs EIP-3009 TransferWithAuthorization and retries with X-PAYMENT header
+4. Aegis402 verifies the signature, checks mitigations, forwards to facilitator for settlement
+5. Upstream response is returned with PAYMENT-RESPONSE receipt header
 
-Aegis402 is the missing security layer for the agentic economy. Deploy it once and start getting paid for every API call, automatically.
+## Configuration
+
+Key environment variables in `.env`:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `UPSTREAM_URL` | `http://localhost:8080` | Your backend API |
+| `PRICE` | `0.05` | Default USDC price per request |
+| `NETWORK` | `eip155:84532` | Blockchain (use `eip155:8453` for Base Mainnet) |
+| `PAY_TO` | - | Your wallet address for payment collection |
+| `SPLITTER_ADDRESS` | - | Smart contract address for automatic 0.5% fee split |
+
+Full reference: [docs/configuration.md](docs/configuration.md)
+
+## MCP Integration
+
+Aegis402 can add per-tool payment gating to any MCP server. Configure tool-specific prices in `pricing.json`:
+
+```json
+{
+  "tools": {
+    "search_web": { "price": "0.01" },
+    "generate_image": { "price": "0.25" }
+  }
+}
+```
+
+See [docs/mcp.md](docs/mcp.md) for details.
+
+## Project Structure
+
+```
+src/           - Proxy source (13 modules)
+tests/         - Unit tests (89 across 10 files) + MCP demo server
+contracts/     - AegisSplitter.sol payment splitting contract
+docs/          - Setup, architecture, configuration, security, MCP
+scripts/       - Deploy scripts (PowerShell + Bash)
+```
+
+## Business Model
+
+Aegis402 takes 0.5% from each settled payment. The rest goes to your wallet. No setup fees, no monthly minimums.
