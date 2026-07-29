@@ -49,6 +49,9 @@ async function proxyToUpstream(request: FastifyRequest, reply: FastifyReply, txH
   }
 
   return new Promise<void>((resolve) => {
+    let settled = false;
+    const done = () => { if (!settled) { settled = true; resolve(); } };
+
     const proxyReq = client.request(
       urlObj,
       { method: request.method, headers: upstreamHeaders, timeout: 10000 },
@@ -76,25 +79,31 @@ async function proxyToUpstream(request: FastifyRequest, reply: FastifyReply, txH
         initHeaders['payment-response'] = receipt.headers['payment-response'] || '';
 
         reply.raw.writeHead(statusCode, initHeaders);
+
+        // Handle client disconnect mid-stream
+        reply.raw.on('close', () => { proxyReq.destroy(); done(); });
+        proxyRes.on('error', () => { proxyReq.destroy(); done(); });
+        reply.raw.on('error', () => { proxyReq.destroy(); done(); });
+
         proxyRes.pipe(reply.raw);
-        proxyRes.on('end', () => resolve());
+        proxyRes.on('end', done);
       }
     );
 
     proxyReq.on('error', (err) => {
       fastify.log.error(err, 'Upstream request failed');
-      if (!reply.sent) {
+      if (!reply.raw.headersSent) {
         reply.status(502).send({ error: 'Bad Gateway: Upstream request failed.' });
       }
-      resolve();
+      done();
     });
 
     proxyReq.on('timeout', () => {
       proxyReq.destroy();
-      if (!reply.sent) {
+      if (!reply.raw.headersSent) {
         reply.status(504).send({ error: 'Gateway Timeout: Upstream did not respond in time.' });
       }
-      resolve();
+      done();
     });
 
     if (request.body) {
