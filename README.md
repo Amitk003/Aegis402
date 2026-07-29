@@ -49,11 +49,28 @@ Aegis402 is a proxy that sits in front of your API and handles x402 payments sec
 
 ### Quick Start
 
+**Using Docker (recommended):**
+
 ```bash
-docker run -p 3000:3000 -e UPSTREAM_URL=http://yourapi.com aegis402/proxy
+# Clone and deploy
+git clone https://github.com/Amitk003/Aegis402.git
+cd Aegis402
+cp .env.example .env
+# Edit .env with your settings
+docker compose up -d
 ```
 
-See the [docs](docs/) folder for full setup instructions.
+The proxy starts on port 3000. Check it: `curl http://localhost:3000/health`
+
+**Without Docker:**
+
+```bash
+npm install
+cp .env.example .env
+npm start
+```
+
+See the [docs](docs/) folder for detailed setup instructions.
 
 ### Business Model
 

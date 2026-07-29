@@ -1,0 +1,36 @@
+services:
+  proxy:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - UPSTREAM_URL=${UPSTREAM_URL:-http://api:8080}
+      - PORT=3000
+      - HOST=0.0.0.0
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - PRICE=${PRICE:-0.05}
+      - NETWORK=${NETWORK:-eip155:84532}
+      - ASSET=${ASSET:-USDC}
+      - PAY_TO=${PAY_TO:-}
+      - CDP_API_KEY_ID=${CDP_API_KEY_ID:-}
+      - CDP_API_KEY_SECRET=${CDP_API_KEY_SECRET:-}
+      - RPC_URL=${RPC_URL:-}
+      - FINALITY_CONFIRMATIONS=${FINALITY_CONFIRMATIONS:-2}
+      - REGISTRY_STRICT=${REGISTRY_STRICT:-false}
+      - FACILITATOR_ADDRESS=${FACILITATOR_ADDRESS:-}
+      - NODE_ENV=${NODE_ENV:-production}
+    depends_on:
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
