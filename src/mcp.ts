@@ -62,7 +62,25 @@ export function loadMcpConfig(configPath?: string): void {
  */
 export function isMcpRequest(request: FastifyRequest): boolean {
   const url = request.url.toLowerCase();
-  return url.includes('/mcp/tools/call') || url.includes('/mcp/tools/');
+
+  // Standard MCP paths
+  if (url.includes('/mcp/tools/call') || url.includes('/mcp/tools/')) {
+    return true;
+  }
+
+  // JSON-RPC MCP endpoint: check if body contains tools/call method
+  if (url.endsWith('/mcp') || url.endsWith('/mcp/')) {
+    if (request.body) {
+      try {
+        const body = typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
+        if (body.method === 'tools/call') return true;
+      } catch {
+        // Not JSON
+      }
+    }
+  }
+
+  return false;
 }
 
 /**
