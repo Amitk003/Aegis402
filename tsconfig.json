@@ -33,5 +33,5 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
   },
-  "exclude": ["dashboard/", "tests/", "dist/"]
+  "exclude": ["dashboard/", "tests/", "dist/", "contracts/"]
 }
