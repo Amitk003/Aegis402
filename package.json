@@ -8,8 +8,11 @@
   },
   "scripts": {
     "test": "npx tsx tests/test.ts",
+    "test:unit": "npx tsx tests/unit/x402.test.ts && npx tsx tests/unit/store.test.ts && npx tsx tests/unit/nonce.test.ts && npx tsx tests/unit/ratelimit.test.ts && npx tsx tests/unit/stats.test.ts && npx tsx tests/unit/mcp.test.ts && npx tsx tests/unit/finality.test.ts && npx tsx tests/unit/binding.test.ts && npx tsx tests/unit/registry.test.ts && npx tsx tests/unit/mitigations.test.ts",
     "start": "npx tsx src/index.ts",
-    "dev": "npx tsx watch src/index.ts"
+    "dev": "npx tsx watch src/index.ts",
+    "demo:mcp": "npx tsx tests/mcp-server.ts",
+    "demo:client": "npx tsx tests/mcp-demo.ts"
   },
   "repository": {
     "type": "git",
