@@ -27,10 +27,10 @@ export default function Home() {
       <section className="mt-12">
         <h2 className="text-2xl font-bold mb-4">Live Security Log</h2>
         <div className="bg-black p-4 rounded-xl font-mono text-sm border border-gray-800 overflow-y-auto h-64">
-          <div className="text-green-500">[OK] Settled Tx: 0x8a9b... -> Forwarded to MCP</div>
+          <div className="text-green-500">[OK] Settled Tx: 0x8a9b... - Forwarded to MCP</div>
           <div className="text-red-500">[BLOCK] 409 Conflict: Nonce replay detected from 192.168.1.1</div>
           <div className="text-green-500">[OK] Cache-Control headers sanitized for /api/data</div>
-          <div className="text-yellow-500">[WARN] Upstream reachability ping > 500ms</div>
+          <div className="text-yellow-500">[WARN] Upstream reachability ping exceeded 500ms</div>
           <div className="text-green-500">[OK] 402 Challenge issued to autonomous agent</div>
         </div>
       </section>
