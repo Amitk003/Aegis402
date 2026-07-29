@@ -24,7 +24,7 @@ if (getStoreType() === 'memory') {
 }
 
 export const connectStore = async () => {
-  if (STORE_TYPE === 'redis') {
+  if (getStoreType() === 'redis') {
     redisClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
     redisClient.on('error', (err) => console.log('Redis Client Error', err));
     await redisClient.connect();

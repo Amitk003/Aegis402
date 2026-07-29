@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { createCdpFacilitatorClient } from '@coinbase/cdp-sdk/x402';
 import { parsePaymentHeader, randomTxHash } from './x402.js';
 import { prePaymentCheck, postPaymentCheck, recordSettlement } from './mitigations.js';
 
@@ -25,14 +26,8 @@ export async function initCdp(): Promise<boolean> {
   }
 
   try {
-    let createCdpFacilitatorClient: (opts: { apiKeyId?: string; apiKeySecret?: string }) => typeof facilitatorClient;
-    try {
-      ({ createCdpFacilitatorClient } = await import('@coinbase/cdp-sdk/x402'));
-    } catch {
-      ({ createCdpFacilitatorClient } = await import('@coinbase/cdp-sdk'));
-    }
     const keyId = process.env.CDP_API_KEY_ID || process.env.CDP_API_KEY || '';
-    const keySecret = process.env.CDP_API_KEY_SECRET || process.env.CDP_API_SECRET || '';
+    const keySecret = process.env.CDP_API_KEY_SECRET || process.env.CDP_API_API_SECRET || '';
     facilitatorClient = createCdpFacilitatorClient({
       apiKeyId: keyId || undefined,
       apiKeySecret: keySecret || undefined

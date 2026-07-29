@@ -36,7 +36,7 @@ function testUnregisteredStrict() {
 function testRegisteredEndpoint() {
   const OLD_STRICT = process.env.REGISTRY_STRICT;
   process.env.REGISTRY_STRICT = 'true';
-  registerEndpoint('api.example.com', '0xPublicKey', '0xValidSignature');
+  registerEndpoint('api.example.com', '0xPublicKey', '0x' + 'ab'.repeat(65));
   const result = checkEndpoint('https://api.example.com/path');
   assert(result.valid === true, 'registered endpoint allowed in strict mode');
   process.env.REGISTRY_STRICT = OLD_STRICT;
@@ -49,8 +49,8 @@ function testInvalidUrl() {
 
 function testGetRegisteredEndpoints() {
   clearRegistry();
-  registerEndpoint('a.com', 'key1', 'sig1');
-  registerEndpoint('b.com', 'key2', 'sig2');
+  registerEndpoint('a.com', 'key1', '0x' + 'ab'.repeat(65));
+  registerEndpoint('b.com', 'key2', '0x' + 'cd'.repeat(65));
   const endpoints = getRegisteredEndpoints();
   assert(endpoints.length === 2, 'getRegisteredEndpoints returns all entries');
   assert(endpoints.includes('a.com'), 'includes first registered endpoint');

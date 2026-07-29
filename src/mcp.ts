@@ -61,7 +61,9 @@ export function loadMcpConfig(configPath?: string): void {
  * Check if a request is an MCP tool call using pathname segments.
  */
 export function isMcpRequest(request: FastifyRequest): boolean {
-  const url = request.url.split('?')[0]; // strip query string
+  const rawUrl = request.url;
+  if (!rawUrl) return false;
+  const url = (rawUrl.split('?')[0] ?? '');
   const segments = url.split('/').filter(Boolean).map(s => s.toLowerCase());
 
   // Standard MCP paths: /mcp/tools/call or /mcp/tools/list etc
@@ -106,7 +108,9 @@ export function getToolName(request: FastifyRequest): string | undefined {
   }
 
   // Try to extract from URL path: /mcp/tools/call/<toolName>
-  const segments = request.url.split('?')[0].split('/').filter(Boolean);
+  const rawUrl = request.url;
+  if (!rawUrl) return undefined;
+  const segments = (rawUrl.split('?')[0] ?? '').split('/').filter(Boolean);
   const callIdx = segments.findIndex(s => s.toLowerCase() === 'call');
   if (callIdx >= 0 && callIdx + 1 < segments.length) {
     return segments[callIdx + 1];
