@@ -13,7 +13,7 @@ export const getStoreType = (): LockStore => STORE_TYPE as LockStore;
 
 export const connectStore = async () => {
   if (STORE_TYPE === 'redis') {
-    redisClient = createClient({ url: process.env.REDIS_URL });
+    redisClient = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
     redisClient.on('error', (err) => console.log('Redis Client Error', err));
     await redisClient.connect();
   }
