@@ -27,23 +27,16 @@ export interface PaymentReceipt {
   network: string;
 }
 
-const CONFIG = {
-  price: process.env.PRICE || '0.05',
-  network: process.env.NETWORK || 'eip155:84532',
-  asset: process.env.ASSET || 'USDC',
-  payTo: process.env.PAY_TO || '0x0000000000000000000000000000000000000000'
-};
-
 export function createChallenge(): {
   headers: Record<string, string>;
   body: PaymentRequired;
 } {
   const requirements: PaymentRequirements = {
     scheme: 'exact',
-    network: CONFIG.network,
-    asset: CONFIG.asset,
-    amount: CONFIG.price,
-    payTo: CONFIG.payTo,
+    network: process.env.NETWORK || 'eip155:84532',
+    asset: process.env.ASSET || 'USDC',
+    amount: process.env.PRICE || '0.05',
+    payTo: process.env.PAY_TO || '0x0000000000000000000000000000000000000000',
     maxTimeoutSeconds: 300,
     extra: {}
   };
@@ -80,7 +73,7 @@ export function createReceipt(
   status: PaymentReceipt['status'] = 'settled',
   network?: string
 ): { headers: Record<string, string>; body: PaymentReceipt } {
-  const receipt: PaymentReceipt = { txHash, status, network: network || CONFIG.network };
+  const receipt: PaymentReceipt = { txHash, status, network: network || process.env.NETWORK || 'eip155:84532' };
   return {
     headers: {
       'payment-response': Buffer.from(JSON.stringify(receipt)).toString('base64')

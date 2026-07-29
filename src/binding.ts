@@ -1,8 +1,6 @@
 // Attack I-B: Settlement Preemption mitigation
 // Enforces EIP-712 caller binding to prevent front-running
 
-const FACILITATOR_ADDRESS = process.env.FACILITATOR_ADDRESS || '';
-
 export interface BindingCheckResult {
   valid: boolean;
   reason?: string;
@@ -56,7 +54,8 @@ export function checkCallerBinding(
   }
 
   // No caller restriction found - this payment can be front-run
-  if (!FACILITATOR_ADDRESS) {
+  const facilitatorAddress = process.env.FACILITATOR_ADDRESS || '';
+  if (!facilitatorAddress) {
     return {
       valid: true,
       reason: 'No caller restriction found, but FACILITATOR_ADDRESS is not set. Binding check skipped.'
@@ -90,7 +89,8 @@ function validateCaller(
   callerAddress: string,
   field: string
 ): BindingCheckResult {
-  if (!FACILITATOR_ADDRESS) {
+  const facilitatorAddress = process.env.FACILITATOR_ADDRESS || '';
+  if (!facilitatorAddress) {
     // If no facilitator address configured, warn but allow
     return {
       valid: true,
@@ -98,14 +98,14 @@ function validateCaller(
     };
   }
 
-  if (callerAddress.toLowerCase() === FACILITATOR_ADDRESS.toLowerCase()) {
+  if (callerAddress.toLowerCase() === facilitatorAddress.toLowerCase()) {
     return { valid: true };
   }
 
   return {
     valid: false,
     reason: `Caller mismatch: payload is bound to ${shortAddress(callerAddress)} via ${field}, ` +
-      `but the Aegis402 facilitator is at ${shortAddress(FACILITATOR_ADDRESS)}.`
+      `but the Aegis402 facilitator is at ${shortAddress(facilitatorAddress)}.`
   };
 }
 
