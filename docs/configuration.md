@@ -21,16 +21,20 @@ Aegis402 is configured through environment variables. You can set them in a `.en
 | `NETWORK` | `eip155:84532` | Blockchain network reference (CAIP-2 format). Set to `eip155:8453` for Base Mainnet |
 | `ASSET` | `USDC` | Which stablecoin to accept |
 | `PAY_TO` | - | Your wallet address where payments are sent |
-| `CDP_API_KEY` | - | Coinbase Developer Platform API key |
-| `CDP_API_SECRET` | - | Coinbase Developer Platform API secret |
+| `CDP_API_KEY_ID` | - | Coinbase Developer Platform API key ID |
+| `CDP_API_KEY_SECRET` | - | Coinbase Developer Platform API secret |
 | `LOG_LEVEL` | `info` | Logging verbosity: `error`, `warn`, `info`, `debug` |
 | `LOG_JSON` | `false` | When `true`, outputs structured JSON logs for SIEM integration. Auto-enabled in production |
 | `MCP_CONFIG_PATH` | `pricing.json` | Path to per-tool MCP pricing configuration |
 | `FACILITATOR_ADDRESS` | - | Wallet address for caller binding enforcement |
+| `SPLITTER_ADDRESS` | - | AegisSplitter contract for automatic payment splitting |
 | `FINALITY_CONFIRMATIONS` | `2` | Block confirmations needed for high-value payments |
+| `FINALITY_HIGH_VALUE_THRESHOLD` | `0.10` | Payments above this USDC amount get extra finality checks |
+| `FINALITY_POLL_TIMEOUT` | `30000` | Max ms to wait for on-chain finality before fallback |
 | `RATE_LIMIT_RPM` | `60` | Max requests per minute per IP |
 | `RATE_LIMIT_SPEND` | `10` | Max USDC spend per hour per wallet |
 | `REGISTRY_STRICT` | `false` | When true, only registered endpoints are allowed |
+| `NODE_ENV` | `development` | Set to `production` for stricter validation |
 
 ### Price per Endpoint
 
