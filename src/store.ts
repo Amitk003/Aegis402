@@ -6,14 +6,12 @@ let redisClient: RedisClientType | null = null;
 const processingLocks = new Map<string, { expiresAt: number }>();
 const settledNonces = new Map<string, { expiresAt: number }>();
 
-const STORE_TYPE = process.env.REDIS_URL ? 'redis' : 'memory';
-
 export type LockStore = 'redis' | 'memory';
 
-export const getStoreType = (): LockStore => STORE_TYPE as LockStore;
+export const getStoreType = (): LockStore => process.env.REDIS_URL ? 'redis' : 'memory';
 
 // Periodic cleanup of expired entries (in-memory mode only)
-if (STORE_TYPE === 'memory') {
+if (getStoreType() === 'memory') {
   setInterval(() => {
     const now = Date.now();
     for (const [key, value] of processingLocks) {

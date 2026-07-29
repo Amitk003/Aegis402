@@ -131,13 +131,14 @@ export function logPaymentSplit(amount: string, merchantAddress: string): { merc
   const merchantAmount = (numericAmount - parseFloat(feeAmount)).toFixed(6);
   const splitter = getSplitterAddress();
 
+  const shortAddr = (addr: string) => addr.length > 10 ? addr.slice(0, 6) + '...' + addr.slice(-4) : addr;
   console.log('Payment split:', {
     total: amount,
     merchant: merchantAmount,
     fee: feeAmount,
     feeBps,
-    merchantAddress,
-    splitter: splitter || '(not configured, full amount goes to PAY_TO)'
+    merchantAddress: shortAddr(merchantAddress),
+    splitter: splitter ? shortAddr(splitter) : '(not configured, full amount goes to PAY_TO)'
   });
 
   return { merchantAmount, feeAmount };

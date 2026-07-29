@@ -3,7 +3,7 @@
 
 import { waitForFinality, type FinalityResult } from './finality.js';
 import { checkCallerBinding } from './binding.js';
-import { checkEndpoint, registerEndpoint } from './registry.js';
+import { checkEndpoint } from './registry.js';
 import { acquireLock, markSettled, isSettled } from './store.js';
 import { extractNonce } from './nonce.js';
 import type { PaymentPayload } from './x402.js';

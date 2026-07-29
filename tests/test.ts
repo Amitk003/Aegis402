@@ -1,6 +1,11 @@
 import http from 'http';
+import crypto from 'node:crypto';
 
 const PROXY_URL = 'http://localhost:3000';
+let nonceCounter = 0;
+function uniqueNonce(prefix: string): string {
+  return prefix + '-' + (++nonceCounter) + '-' + crypto.randomBytes(4).toString('hex');
+}
 
 function makePaymentPayload(nonce: string): string {
   return Buffer.from(JSON.stringify({
@@ -40,7 +45,7 @@ async function testNoPaymentHeader(): Promise<boolean> {
 
 async function testWithPaymentHeader(): Promise<boolean> {
   return new Promise((resolve) => {
-    const payload = makePaymentPayload('test-nonce-001');
+    const payload = makePaymentPayload(uniqueNonce('test-pay'));
     const req = http.request(PROXY_URL, {
       method: 'GET',
       headers: { 'x-payment': payload }
@@ -68,7 +73,7 @@ async function testWithPaymentHeader(): Promise<boolean> {
 
 async function testReplayProtection(): Promise<boolean> {
   return new Promise((resolve) => {
-    const payload = makePaymentPayload('test-nonce-replay');
+    const payload = makePaymentPayload(uniqueNonce('test-replay'));
     const headers = { 'x-payment': payload };
 
     // First request should succeed
@@ -93,7 +98,7 @@ async function testReplayProtection(): Promise<boolean> {
 
 async function testCacheHeaders(): Promise<boolean> {
   return new Promise((resolve) => {
-    const payload = makePaymentPayload('test-nonce-cache');
+    const payload = makePaymentPayload(uniqueNonce('test-cache'));
     const req = http.request(PROXY_URL, {
       method: 'GET',
       headers: { 'x-payment': payload }
@@ -134,7 +139,7 @@ async function testInvalidPaymentHeader(): Promise<boolean> {
 
 async function testAcceptMultipleMethods(): Promise<boolean> {
   return new Promise((resolve) => {
-    const payload = makePaymentPayload('test-nonce-post');
+    const payload = makePaymentPayload(uniqueNonce('test-multi'));
     const req = http.request(PROXY_URL, {
       method: 'POST',
       headers: { 'x-payment': payload, 'content-type': 'application/json' }

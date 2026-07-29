@@ -4,6 +4,14 @@
 
 const walletBuckets = new Map<string, { count: number; resetAt: number }>();
 
+// Periodic cleanup to prevent memory leak
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of walletBuckets) {
+    if (bucket.resetAt <= now) walletBuckets.delete(key);
+  }
+}, 60_000);
+
 const CONFIG = {
   maxRequestsPerMinute: Number(process.env.RATE_LIMIT_RPM) || 60,
   maxSpendPerHour: Number(process.env.RATE_LIMIT_SPEND) || 10, // USDC
