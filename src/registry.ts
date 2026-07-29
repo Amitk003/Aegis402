@@ -103,8 +103,7 @@ function verifyAttestation(attestation: EndpointAttestation): boolean {
     return false;
   }
 
-  // In development mode, skip real signature verification
-  // In production, this would use crypto.verify() with the public key
+  // In production, use crypto.verify() with the public key
   if (process.env.NODE_ENV === 'production') {
     try {
       const verifier = crypto.createVerify('SHA256');
@@ -119,6 +118,10 @@ function verifyAttestation(attestation: EndpointAttestation): boolean {
     }
   }
 
+  // In development, require at least a hex-encoded 65-byte ECDSA signature
+  if (!/^0x[0-9a-f]{130}$/i.test(attestation.signature)) {
+    return false;
+  }
   return true;
 }
 

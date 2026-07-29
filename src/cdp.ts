@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { parsePaymentHeader, randomTxHash } from './x402.js';
 import { prePaymentCheck, postPaymentCheck, recordSettlement } from './mitigations.js';
 
@@ -24,13 +25,18 @@ export async function initCdp(): Promise<boolean> {
   }
 
   try {
-    const { createCdpFacilitatorClient } = await import('@coinbase/cdp-sdk/x402');
+    let createCdpFacilitatorClient: (opts: { apiKeyId?: string; apiKeySecret?: string }) => typeof facilitatorClient;
+    try {
+      ({ createCdpFacilitatorClient } = await import('@coinbase/cdp-sdk/x402'));
+    } catch {
+      ({ createCdpFacilitatorClient } = await import('@coinbase/cdp-sdk'));
+    }
     const keyId = process.env.CDP_API_KEY_ID || process.env.CDP_API_KEY || '';
     const keySecret = process.env.CDP_API_KEY_SECRET || process.env.CDP_API_SECRET || '';
     facilitatorClient = createCdpFacilitatorClient({
       apiKeyId: keyId || undefined,
       apiKeySecret: keySecret || undefined
-    } as any);
+    });
     cdpMode = 'production';
     console.log('CDP: Facilitator connected. Real payment processing enabled.');
     return true;
@@ -147,11 +153,5 @@ function extractNonceSafe(payment: { payload: Record<string, unknown> }): string
 }
 
 function hashString(data: string): string {
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return hash.toString(16);
+  return crypto.createHash('sha256').update(data).digest('hex');
 }

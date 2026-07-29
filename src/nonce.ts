@@ -1,5 +1,6 @@
 // Nonce extraction utility for x402 payment payloads
 
+import crypto from 'node:crypto';
 import type { PaymentPayload } from './x402.js';
 
 /**
@@ -36,11 +37,5 @@ export function extractNonce(payment: PaymentPayload): string {
 }
 
 function hashString(data: string): string {
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return hash.toString(16);
+  return '0x' + crypto.createHash('sha256').update(data).digest('hex');
 }

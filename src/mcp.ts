@@ -58,18 +58,21 @@ export function loadMcpConfig(configPath?: string): void {
 }
 
 /**
- * Check if a request is an MCP tool call.
+ * Check if a request is an MCP tool call using pathname segments.
  */
 export function isMcpRequest(request: FastifyRequest): boolean {
-  const url = request.url.toLowerCase();
+  const url = request.url.split('?')[0]; // strip query string
+  const segments = url.split('/').filter(Boolean).map(s => s.toLowerCase());
 
-  // Standard MCP paths
-  if (url.includes('/mcp/tools/call') || url.includes('/mcp/tools/')) {
-    return true;
+  // Standard MCP paths: /mcp/tools/call or /mcp/tools/list etc
+  for (let i = 0; i < segments.length - 1; i++) {
+    if (segments[i] === 'mcp' && segments[i + 1] === 'tools') {
+      return true;
+    }
   }
 
-  // JSON-RPC MCP endpoint: check if body contains tools/call method
-  if (url.endsWith('/mcp') || url.endsWith('/mcp/')) {
+  // JSON-RPC MCP endpoint: POST /mcp with method: tools/call
+  if (segments.length >= 1 && segments[segments.length - 1] === 'mcp') {
     if (request.body) {
       try {
         const body = typeof request.body === 'string' ? JSON.parse(request.body) : request.body;
@@ -102,10 +105,12 @@ export function getToolName(request: FastifyRequest): string | undefined {
     }
   }
 
-  // Try to extract from URL path
-  const url = request.url;
-  const match = url.match(/\/tools\/call\/([^/]+)/);
-  if (match) return match[1];
+  // Try to extract from URL path: /mcp/tools/call/<toolName>
+  const segments = request.url.split('?')[0].split('/').filter(Boolean);
+  const callIdx = segments.findIndex(s => s.toLowerCase() === 'call');
+  if (callIdx >= 0 && callIdx + 1 < segments.length) {
+    return segments[callIdx + 1];
+  }
 
   return undefined;
 }
@@ -168,4 +173,4 @@ export function getMcpPricing(): Record<string, { price: string; description?: s
   return { ...config.tools };
 }
 
-export { config as mcpConfig };
+export function getMcpConfig() { return { ...config }; }
