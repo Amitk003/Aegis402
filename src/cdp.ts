@@ -8,6 +8,10 @@ let facilitatorClient: {
   settle(paymentPayload: unknown, requirements: unknown): Promise<{ success: boolean; transaction?: string }>;
 } | null = null;
 
+export function isProductionMode(): boolean {
+  return cdpMode === 'production';
+}
+
 export function hasCdpCredentials(): boolean {
   return !!(process.env.CDP_API_KEY_ID || process.env.CDP_API_KEY);
 }

@@ -4,12 +4,26 @@ import https from 'https';
 import { handle402Challenge, checkPaymentHeader } from './interceptor.js';
 import { connectStore } from './store.js';
 import { checkReachability } from './reachability.js';
-import { initCdp, processPayment } from './cdp.js';
+import { initCdp, processPayment, hasCdpCredentials, isProductionMode } from './cdp.js';
 import { createReceipt } from './x402.js';
+import { checkRateLimit, trackSpend, checkSpendLimit } from './ratelimit.js';
 
-const fastify = Fastify({ logger: true });
+const fastify = Fastify({ logger: { level: process.env.LOG_LEVEL || 'info' } });
 
 const UPSTREAM = process.env.UPSTREAM_URL || 'http://localhost:8080';
+
+// Health check endpoint (not payment-gated)
+fastify.get('/health', async (_request: FastifyRequest, reply: FastifyReply) => {
+  const upstreamReachable = await checkReachability(UPSTREAM, 2000);
+  reply.send({
+    status: 'ok',
+    version: '1.0.0',
+    upstream: UPSTREAM,
+    upstreamReachable,
+    cdpMode: isProductionMode() ? 'production' : 'development',
+    cdpConfigured: hasCdpCredentials()
+  });
+});
 
 async function proxyToUpstream(request: FastifyRequest, reply: FastifyReply, txHash: string) {
   const urlObj = new URL(request.url, UPSTREAM);
@@ -41,13 +55,10 @@ async function proxyToUpstream(request: FastifyRequest, reply: FastifyReply, txH
         }
 
         // Attack III: Web-Layer Handling mitigation
-        // Strip any upstream cache headers and enforce strict privacy
         initHeaders['cache-control'] = 'private, no-cache, no-store, must-revalidate';
         initHeaders['pragma'] = 'no-cache';
         initHeaders['expires'] = '0';
-        // Add Vary header to prevent CDN caching by URL alone
         initHeaders['vary'] = 'x-payment, authorization';
-        // Remove ETag and Last-Modified to prevent conditional requests bypassing payment
         delete initHeaders['etag'];
         delete initHeaders['last-modified'];
 
@@ -63,7 +74,9 @@ async function proxyToUpstream(request: FastifyRequest, reply: FastifyReply, txH
 
     proxyReq.on('error', (err) => {
       fastify.log.error(err, 'Upstream request failed');
-      reply.status(502).send({ error: 'Bad Gateway: Upstream request failed.' });
+      if (!reply.sent) {
+        reply.status(502).send({ error: 'Bad Gateway: Upstream request failed.' });
+      }
       resolve();
     });
 
@@ -84,6 +97,14 @@ async function proxyToUpstream(request: FastifyRequest, reply: FastifyReply, txH
 }
 
 fastify.all('/*', async (request: FastifyRequest, reply: FastifyReply) => {
+  // Rate limiting by IP
+  const clientIp = request.ip;
+  const rateCheck = checkRateLimit(clientIp);
+  if (!rateCheck.allowed) {
+    reply.header('retry-after', String(Math.ceil((rateCheck.resetAt - Date.now()) / 1000)));
+    return reply.status(429).send({ error: 'Too Many Requests', detail: rateCheck.reason });
+  }
+
   const paymentHeader = checkPaymentHeader(request);
 
   if (!paymentHeader) {
@@ -91,23 +112,32 @@ fastify.all('/*', async (request: FastifyRequest, reply: FastifyReply) => {
     return;
   }
 
-  // Pre-flight reachability check before processing payment
+  // Pre-flight reachability check
   const isReachable = await checkReachability(UPSTREAM);
   if (!isReachable) {
     return reply.status(502).send({ error: 'Bad Gateway: Upstream target is unreachable. Payment aborted.' });
   }
 
   // Process the x402 payment with security mitigations
-  const result = await processPayment(paymentHeader, UPSTREAM);
-  if (!result.success) {
+  const paymentResult = await processPayment(paymentHeader, UPSTREAM);
+  if (!paymentResult.success) {
     return reply.status(402).send({
       error: 'Payment rejected',
-      detail: result.error
+      detail: paymentResult.error
     });
   }
 
-  // Forward to upstream with the tx hash
-  await proxyToUpstream(request, reply, result.txHash || '');
+  // Track spend for rate limiting
+  try {
+    const decoded = JSON.parse(Buffer.from(paymentHeader, 'base64').toString());
+    const walletAddress = decoded.payload?.signer || decoded.signer || clientIp;
+    trackSpend(walletAddress, decoded.accepted?.amount || '0.05');
+  } catch {
+    // Ignore tracking errors
+  }
+
+  // Forward to upstream
+  await proxyToUpstream(request, reply, paymentResult.txHash || '');
 });
 
 const start = async () => {
