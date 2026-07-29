@@ -46,8 +46,9 @@ export default function Home() {
   const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
+    const proxyUrl = (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000').replace(/:\d+$/, ':3000');
     const fetchStats = () => {
-      fetch('http://localhost:3000/stats')
+      fetch(proxyUrl + '/stats')
         .then(r => r.json())
         .then(setStats)
         .catch(() => {});
