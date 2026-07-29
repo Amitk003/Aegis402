@@ -24,6 +24,19 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  dashboard:
+    build:
+      context: dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NEXT_PUBLIC_PROXY_URL=http://proxy:3000
+      - PORT=3001
+    depends_on:
+      - proxy
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     ports:
