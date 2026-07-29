@@ -66,6 +66,7 @@ export async function processPayment(
     if (!postCheck.allowed) {
       return { success: false, error: `Finality check failed: ${postCheck.reason}` };
     }
+    logPaymentSplit(payment.accepted.amount, payment.accepted.payTo);
     await recordSettlement(extractNonceSafe(payment));
     return { success: true, txHash };
   }
@@ -90,6 +91,7 @@ export async function processPayment(
     }
 
     const txHash = settleResult.transaction || randomTxHash();
+    logPaymentSplit(payment.accepted.amount, payment.accepted.payTo);
 
     // Run post-payment verification with k-confirmations
     const postCheck = await postPaymentCheck(txHash, payment.accepted.amount, payment.accepted.network);
@@ -102,6 +104,37 @@ export async function processPayment(
   } catch (err) {
     return { success: false, error: `Payment processing failed: ${(err as Error).message}` };
   }
+}
+
+/**
+ * Get the splitter contract address from env, if configured.
+ */
+export function getSplitterAddress(): string | undefined {
+  return process.env.SPLITTER_ADDRESS || undefined;
+}
+
+/**
+ * Log the payment split when a splitter contract is configured.
+ * In production with SPLITTER_ADDRESS set, the on-chain contract
+ * handles the actual split. This function logs what would happen.
+ */
+export function logPaymentSplit(amount: string, merchantAddress: string): { merchantAmount: string; feeAmount: string } {
+  const numericAmount = parseFloat(amount);
+  const feeBps = 50; // 0.5%
+  const feeAmount = ((numericAmount * feeBps) / 10000).toFixed(6);
+  const merchantAmount = (numericAmount - parseFloat(feeAmount)).toFixed(6);
+  const splitter = getSplitterAddress();
+
+  console.log('Payment split:', {
+    total: amount,
+    merchant: merchantAmount,
+    fee: feeAmount,
+    feeBps,
+    merchantAddress,
+    splitter: splitter || '(not configured, full amount goes to PAY_TO)'
+  });
+
+  return { merchantAmount, feeAmount };
 }
 
 function extractNonceSafe(payment: { payload: Record<string, unknown> }): string {
