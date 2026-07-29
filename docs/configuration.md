@@ -24,6 +24,12 @@ Aegis402 is configured through environment variables. You can set them in a `.en
 | `CDP_API_KEY` | - | Coinbase Developer Platform API key |
 | `CDP_API_SECRET` | - | Coinbase Developer Platform API secret |
 | `LOG_LEVEL` | `info` | Logging verbosity: `error`, `warn`, `info`, `debug` |
+| `MCP_CONFIG_PATH` | `pricing.json` | Path to per-tool MCP pricing configuration |
+| `FACILITATOR_ADDRESS` | - | Wallet address for caller binding enforcement |
+| `FINALITY_CONFIRMATIONS` | `2` | Block confirmations needed for high-value payments |
+| `RATE_LIMIT_RPM` | `60` | Max requests per minute per IP |
+| `RATE_LIMIT_SPEND` | `10` | Max USDC spend per hour per wallet |
+| `REGISTRY_STRICT` | `false` | When true, only registered endpoints are allowed |
 
 ### Price per Endpoint
 

@@ -1,0 +1,26 @@
+{
+  "basePath": "/mcp",
+  "defaultPrice": "0.05",
+  "tools": {
+    "search_web": {
+      "price": "0.01",
+      "description": "Search the web for information"
+    },
+    "generate_image": {
+      "price": "0.25",
+      "description": "Generate an image using AI"
+    },
+    "analyze_document": {
+      "price": "0.10",
+      "description": "Analyze a document and extract insights"
+    },
+    "execute_code": {
+      "price": "0.50",
+      "description": "Execute code in a sandbox environment"
+    },
+    "fetch_premium_data": {
+      "price": "0.15",
+      "description": "Access premium data from external API"
+    }
+  }
+}
