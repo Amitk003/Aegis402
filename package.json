@@ -1,13 +1,13 @@
 {
-  "name": "app",
+  "name": "aegis402",
   "version": "1.0.0",
-  "description": "The internet is evolving. We are shifting from human-centric web browsing to an automated, machine-driven ecosystem powered by autonomous AI agents. The x402 protocol is the foundational payment rail for this new era, enabling machines to transact seamlessly without human intervention.",
+  "description": "API gateway and cryptographic policy engine that adds x402 payment walls to any web API with built-in security mitigations.",
   "main": "index.js",
   "directories": {
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npx tsx tests/test.ts",
     "start": "npx tsx src/index.ts",
     "dev": "npx tsx watch src/index.ts"
   },
@@ -25,7 +25,6 @@
   "homepage": "https://github.com/Amitk003/Aegis402#readme",
   "dependencies": {
     "@coinbase/cdp-sdk": "^1.54.0",
-    "@fastify/http-proxy": "^11.6.0",
     "@types/node": "^26.1.2",
     "fastify": "^5.10.0",
     "redis": "^6.1.0",
